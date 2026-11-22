@@ -1,0 +1,16 @@
+node_modules/
+vendor/
+dist/
+out/
+*.exe
+*.asar
+*.log
+.env*
+.DS_Store
+Thumbs.db
+
+# Local Algooly settings and history if they are placed inside this checkout.
+/config.json
+/Algooly History/
+/AlgoWiki History/
+/background-*

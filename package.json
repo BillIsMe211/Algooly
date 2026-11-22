@@ -1,0 +1,22 @@
+{
+  "name": "algooly",
+ "version": "1.0.0",
+  "description": "Algooly - Thư viện thuật toán cho Competitive Programming",
+  "main": "main.js",
+  "author": "Nghia Nguyen",
+  "license": "MIT",
+  "dependencies": {
+    "@highlightjs/cdn-assets": "^11.12.0",
+    "katex": "^0.16.47",
+    "marked": "^12.0.2",
+    "yauzl": "^3.4.0",
+    "yazl": "^3.3.1"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0"
+  }
+}

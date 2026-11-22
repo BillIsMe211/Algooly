@@ -405,13 +405,15 @@ window.History = (() => {
   function showLink(id) {
     const i = byId(id); if (!i) return; const t = T(); const old = document.querySelector('.askwrap'); if (old) old.remove();
     const w = document.createElement('div'); w.className = 'askwrap';
-    w.innerHTML = `<div class="mask"></div><div class="dlg askd linkd"><h2>${esc(t.linkLbl)}</h2><div class="linkrow"><input id="linkIn" value="${esc(i.meta.url || '')}" placeholder="https://…" spellcheck="false" autocomplete="off"><button class="hb ic" data-la="copy" title="${esc(t.copyUrl)}" aria-label="${esc(t.copyUrl)}">${IMGICO.copy}</button><button class="hb ic" data-la="open" title="${esc(t.openLink)}" aria-label="${esc(t.openLink)}">${IMGICO.ext}</button></div><p class="hint err" id="linkHint" hidden></p></div>`;
-    document.body.appendChild(w); const inp = w.querySelector('#linkIn'), hint = w.querySelector('#linkHint'); inp.focus(); inp.select(); let saved = i.meta.url || '';
+    w.innerHTML = `<div class="mask"></div><div class="dlg askd linkd"><h2>${esc(t.linkLbl)}</h2><div class="linkrow"><input id="linkIn" value="${esc(i.meta.url || '')}" placeholder="https://…" spellcheck="false" autocomplete="off"><button class="hb ic" data-la="copy" title="${esc(t.copyUrl)}" aria-label="${esc(t.copyUrl)}">${IMGICO.copy}</button><button class="hb ic" data-la="open" title="${esc(t.openLink)}" aria-label="${esc(t.openLink)}">${IMGICO.ext}</button></div><p class="hint linksrc" id="linkSrc" hidden></p><p class="hint err" id="linkHint" hidden></p></div>`;
+    document.body.appendChild(w); const inp = w.querySelector('#linkIn'), hint = w.querySelector('#linkHint'), srcEl = w.querySelector('#linkSrc'); inp.focus(); inp.select(); let saved = i.meta.url || '';
+    const showSrc = () => { const k = i.meta.url && i.meta.urlSource, name = k && t['linkSrc' + k[0].toUpperCase() + k.slice(1)]; srcEl.textContent = name ? `${t.linkSrc}: ${name}` : ''; srcEl.hidden = !name; };   // nguồn: ảnh / API Codeforces / Google Search / nhập tay
+    showSrc();
     const save = async () => {                                                      // sửa trực tiếp trong ô, tự lưu khi Enter / bấm ra ngoài
       const v = inp.value.trim(); if (v === saved) return true;
       if (v !== '' && !/^https?:\/\/\S+$/i.test(v)) { inp.classList.add('bad'); hint.textContent = t.linkBad; hint.hidden = false; return false; }
       inp.classList.remove('bad'); const r = await api.inv('h-meta', id, { url: v }); if (r && r.error) { C.toast(r.error); return false; }
-      saved = v; i.meta.url = v; load(); return true;
+      saved = v; i.meta.url = v; i.meta.urlSource = v ? 'manual' : ''; showSrc(); load(); return true;
     };
     const close = async () => { if (await save()) w.remove(); };
     w.addEventListener('click', async e => {

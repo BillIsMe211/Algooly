@@ -134,6 +134,9 @@ Object.assign(I18N.ru, { emptyLib:'Библиотека пуста. Включи
 Object.assign(I18N.vi, { emptyLib:'Thư viện đang trống. Bật chế độ chỉnh sửa trong Cài đặt để tạo thuật toán của riêng bạn, hoặc nhập một gói thư viện (.zip) ở mục Thư viện trong Cài đặt.' });
 Object.assign(I18N.en, { emptyLib:'Your library is empty. Turn on edit mode in Settings to create your own algorithms, or import a library package (.zip) from the Library section in Settings.' });
 Object.assign(I18N.ru, { emptyLib:'Библиотека пуста. Включите режим редактирования в настройках, чтобы создавать собственные алгоритмы, или импортируйте пакет библиотеки (.zip) в разделе «Библиотека» настроек.' });
+Object.assign(I18N.vi, { autoLink:'Tự tìm link đề bằng AI + Google Search khi ảnh không có link (tốn thêm 1 request)', linkSrc:'Nguồn link', linkSrcScreenshot:'đọc từ ảnh chụp', linkSrcCodeforces:'dữ liệu chính thức của Codeforces', linkSrcSearch:'AI tìm bằng Google Search', linkSrcManual:'nhập tay' });
+Object.assign(I18N.en, { autoLink:'Find missing problem links with AI + Google Search (uses 1 extra request)', linkSrc:'Link source', linkSrcScreenshot:'read from the screenshot', linkSrcCodeforces:'official Codeforces data', linkSrcSearch:'found by AI with Google Search', linkSrcManual:'entered manually' });
+Object.assign(I18N.ru, { autoLink:'Искать недостающие ссылки на задачи через ИИ и Google Search (+1 запрос)', linkSrc:'Источник ссылки', linkSrcScreenshot:'считана со снимка', linkSrcCodeforces:'официальные данные Codeforces', linkSrcSearch:'найдена ИИ через Google Search', linkSrcManual:'введена вручную' });
 for (const locale of Object.values(I18N)) {
   for (const [key, value] of Object.entries(locale)) if (typeof value === 'string') locale[key] = value.replace(/algowiki/gi, 'Algooly');
   locale.tagline = ''; locale.ws = ''; locale.subtitle = ''; locale.credits = '';

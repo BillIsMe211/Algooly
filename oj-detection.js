@@ -88,12 +88,26 @@ function isJudgeProblemUrl(value) {
   if (host === 'vnoj.info' || host === 'oj.vnoi.info') return /^\/problem\/[^/]+\/?$/i.test(path);
   if (host === 'marisaoj.com') return /^\/(?:problem|problems)\/[^/]+\/?$/i.test(path);
   if (/^(?:[^.]+\.)*clue\.edu\.vn$/.test(host)) return /^\/problem\/[^/]+\/?$/i.test(path);
+  if (host === 'codechef.com') return /^\/problems\/[A-Z0-9_]+\/?$/i.test(path);
+  if (host === 'open.kattis.com') return /^\/problems\/[^/]+\/?$/i.test(path);
+  if (host === 'dmoj.ca') return /^\/problem\/[^/]+\/?$/i.test(path);
   return false;
 }
 
-function groundedProblemUrl(candidate, chunks) {
+// Judges whose problem pages isJudgeProblemUrl() can recognise, with the domain used as a search hint.
+const SEARCH_DOMAINS = { Codeforces: 'codeforces.com', AtCoder: 'atcoder.jp', LeetCode: 'leetcode.com', CSES: 'cses.fi', HackerRank: 'hackerrank.com', SPOJ: 'spoj.com', Luogu: 'luogu.com.cn', VNOI: 'oj.vnoi.info', MarisaOJ: 'marisaoj.com', ClueOJ: 'oj.clue.edu.vn', CodeChef: 'codechef.com', Kattis: 'open.kattis.com', DMOJ: 'dmoj.ca' };
+const judgeSearchDomain = site => Object.prototype.hasOwnProperty.call(SEARCH_DOMAINS, site) ? SEARCH_DOMAINS[site] : '';
+// A web search is only worth a request when its result could be accepted: judge unknown, or one we can validate.
+function canSearchProblemUrl(site) {
+  const name = String(site || '').trim();
+  return !name || /^unknown$/i.test(name) || Object.prototype.hasOwnProperty.call(SEARCH_DOMAINS, name);
+}
+
+function groundedProblemUrl(candidate, chunks, expectedSite = '') {
   const target = cleanProblemUrl(candidate);
   if (!target || !isJudgeProblemUrl(target)) return '';
+  const found = judgeFromUrl(target);
+  if (expectedSite && !/^unknown$/i.test(expectedSite) && found && found !== expectedSite) return '';   // wrong judge for this problem
   const canonical = value => {
     try {
       const url = new URL(cleanProblemUrl(value));
@@ -104,4 +118,4 @@ function groundedProblemUrl(candidate, chunks) {
   return source ? cleanProblemUrl(source) : '';
 }
 
-module.exports = { cleanProblemUrl, judgeFromUrl, problemIdFromUrl, judgeFromText, inferJudge, isJudgeProblemUrl, groundedProblemUrl };
+module.exports = { cleanProblemUrl, judgeFromUrl, problemIdFromUrl, judgeFromText, inferJudge, isJudgeProblemUrl, groundedProblemUrl, canSearchProblemUrl, judgeSearchDomain };

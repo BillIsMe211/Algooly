@@ -86,15 +86,14 @@ window.History = (() => {
     }
     ta.dispatchEvent(new Event('input', { bubbles: true }));
   }
-  const difficultyName = value => ({ Easy: T().diffEasy, Medium: T().diffMedium, Hard: T().diffHard }[value] || value);
   function lineCount(text) { let count = 1; for (let i = 0; i < text.length; i++) if (text.charCodeAt(i) === 10) count++; return count; }
   function lineNumbers(count) { let lines = '1'; for (let i = 2; i <= count; i++) lines += '\n' + i; return lines; }
   function ratingDetails(item, t) {
     if (item.meta.rating) return { label: `${t.rating}: ${item.meta.rating}`, className: 'rating', title: t.rating };
     if (item.meta.ratingEstimate) return { label: `${t.ratingEstimate}: ~${item.meta.ratingEstimate}`, className: 'rating estimated', title: t.ratingEstimateHint };
     if (item.meta.ratingEstimateStatus === 'pending') return { label: t.ratingEstimatePending, className: 'rating missing', title: t.ratingEstimateHint };
-    if (item.meta.ratingEstimateStatus === 'error') return { label: t.ratingEstimateFailed, className: 'rating missing', title: t.ratingEstimateFailed };
-    if (item.meta.ratingEstimateStatus === 'unavailable') return { label: t.ratingEstimateUnavailable, className: 'rating missing', title: t.ratingEstimateHint };
+    if (item.meta.ratingEstimateStatus === 'error') return { label: t.ratingEstimateFailed, className: 'rating missing', title: `${t.ratingEstimateFailed} — ${t.ratingRetryHint}`, retry: true };
+    if (item.meta.ratingEstimateStatus === 'unavailable') return { label: t.ratingEstimateUnavailable, className: 'rating missing', title: `${t.ratingEstimateHint} — ${t.ratingRetryHint}`, retry: true };
     const state = item.meta.ratingStatus === 'unrated' ? t.unrated : t.ratingUnknown;
     return { label: `${t.rating}: ${state}`, className: 'rating missing', title: item.meta.ratingStatus === 'unrated' ? t.unrated : t.ratingUnknown };
   }
@@ -136,7 +135,7 @@ window.History = (() => {
     return list.filter(i => {
       if (hs.site && i.meta.site !== hs.site) return false; if (hs.status === 'nosol' && i.solved) return false; if (hs.status === 'sol' && !i.solved) return false; if (VERDICTS.includes(hs.status) && !(i.verdicts || []).includes(hs.status)) return false; if (hs.status === 'star' && !i.meta.star) return false;
       if (lim >= 0) { const d = new Date(i.day + 'T00:00:00'); if ((t0 - d) / 864e5 > lim) return false; }
-      if (q && !(i.name + ' ' + i.meta.site + ' ' + i.meta.title + ' ' + i.meta.pid + ' ' + i.meta.tags.join(' ')).toLowerCase().includes(q)) return false; return true; }).sort((a, b) => b.createdAt - a.createdAt);
+      if (q && !(i.name + ' ' + i.meta.site + ' ' + i.meta.title).toLowerCase().includes(q)) return false; return true; }).sort((a, b) => b.createdAt - a.createdAt);
   }
   // ---------- thống kê (heatmap)
   function stats() {
@@ -166,7 +165,7 @@ window.History = (() => {
     const t = T();
     const vds = (i.solved ? ['AC'] : []).concat(i.verdicts || []).map(v => `<span class="hs vd ${v}" title="${VTITLE[v]}">${v}</span>`).join('');
     const status = vds + (i.meta.pending ? `<span class="hs pend"><i class="spin"></i>${esc(t.aiNaming)}</span>` : !i.hasSol ? `<span class="hs red">${esc(t.noSolution)}</span>` : `${i.sols.filter(s => s.size > 0).map(s => `<span class="hs lang">${esc(extName(s.name))}</span>`).join('')}`);
-    const rating = ratingDetails(i, t), details = [[i.meta.site, 'lang'], [difficultyName(i.meta.difficulty), 'diff']].filter(v => v[0]).map(([v, c]) => `<span class="hs ${c}">${esc(v)}</span>`).join('') + `<span class="hs ${rating.className}" title="${esc(rating.title)}">${esc(rating.label)}</span>`;
+    const rating = ratingDetails(i, t), details = [[i.meta.site, 'lang']].filter(v => v[0]).map(([v, c]) => `<span class="hs ${c}">${esc(v)}</span>`).join('') + `<span class="hs ${rating.className}" title="${esc(rating.title)}"${rating.retry ? ` data-hretry="${esc(i.id)}" role="button" tabindex="0"` : ''}>${esc(rating.label)}</span>`;
     return `<div class="hcard ${stOf(i) ? 'st-' + stOf(i) : ''} ${hs.sel === i.id ? 'on' : ''} ${isSelected('item', i.id) ? 'selected' : ''} ${isCut('item', i.id) ? 'cut' : ''}" data-hid="${esc(i.id)}" tabindex="0" draggable="true" data-hdrag="item"><div class="hct">${FOLDER}<span class="hright">${i.meta.star ? `<span class="hstar">${STAR}</span>` : ''}<button class="hdots" data-hmenu="${esc(i.id)}" aria-label="menu">${ICO.dots}</button></span></div>
     <div class="hname" title="${esc(i.name)}">${esc(i.name)}</div><div class="hmeta">${esc(t.files(i.count))} · ${esc(t.createdAt)} ${esc(hhmm(i.createdAt))}</div><div class="hrow">${status}${details}</div></div>`;
   }
@@ -215,13 +214,12 @@ window.History = (() => {
     C.toast(T().exportDone(result.count));
   }
   const TABLE_COLUMNS = ['name', 'result', 'judge', 'rating', 'created'];
-  const DIFF_RANK = { Easy: 1, Medium: 2, Hard: 3 };
   function compareHistoryItems(a, b) {
-    const score = i => (i.meta.rating || i.meta.ratingEstimate || 0) * 10 + (DIFF_RANK[i.meta.difficulty] || 0);
+    const score = i => i.meta.rating || i.meta.ratingEstimate || 0;
     const values = {
       name: [a.name, b.name],
       created: [a.createdAt, b.createdAt],
-      judge: [`${a.meta.site} ${a.meta.pid}`, `${b.meta.site} ${b.meta.pid}`],
+      judge: [a.meta.site || '', b.meta.site || ''],
       rating: [score(a), score(b)],
       result: [a.solved ? 'AC' : (a.verdicts || []).join(' '), b.solved ? 'AC' : (b.verdicts || []).join(' ')]
     }[hs.sortKey] || [a.createdAt, b.createdAt];
@@ -258,14 +256,14 @@ window.History = (() => {
   }
   const folderPath = id => { const names = []; let g = groups.find(x => x.id === id), guard = 0; while (g && guard++ < 20) { names.unshift(g.name); const pid = g.parentId; g = groups.find(x => x.id === pid); } return names.join(' / '); };
   function tableItemRow(item, t, where) {
-    const rating = item.meta.rating ? String(item.meta.rating) : item.meta.ratingEstimate ? `~${item.meta.ratingEstimate}` : difficultyName(item.meta.difficulty) || (item.meta.ratingStatus === 'unrated' ? t.unrated : item.meta.ratingEstimateStatus === 'pending' ? '…' : '—');
+    const rating = item.meta.rating ? String(item.meta.rating) : item.meta.ratingEstimate ? `~${item.meta.ratingEstimate}` : (item.meta.ratingStatus === 'unrated' ? t.unrated : item.meta.ratingEstimateStatus === 'pending' ? '…' : '—');
     const verdicts = (item.solved ? ['AC'] : []).concat(item.verdicts || []);
     const result = verdicts.length ? verdicts.map(v => `<span class="hs vd ${v}" title="${esc(VTITLE[v])}">${v}</span>`).join(' ') : item.meta.pending ? `<span class="hs pend"><i class="spin"></i></span>` : !item.hasSol ? `<span class="hs red">${esc(t.noSolution)}</span>` : '—';
-    const site = item.meta.site || '—', page = item.meta.pid || item.meta.title || '';
-    return `<tr class="h-table-item h-tree-item ${isSelected('item', item.id) ? 'selected' : ''} ${isCut('item', item.id) ? 'cut' : ''}" data-hid="${esc(item.id)}" data-hdrag="item" tabindex="0" draggable="true"><td class="hc-name"><div class="h-cell-name"><span class="h-tree-icon">${ROWICO}</span><b title="${esc(item.name)}">${esc(item.name)}</b>${where ? `<small class="h-where" title="${esc(where)}">${esc(where)}</small>` : ''}<button class="hdots" data-hmenu="${esc(item.id)}" aria-label="${esc(t.open)}">${ICO.dots}</button></div></td><td class="hc-result">${result}</td><td class="hc-judge"><span title="${esc(site)}">${esc(site)}</span>${page ? `<small title="${esc(page)}">${esc(page)}</small>` : ''}</td><td class="hc-rating" title="${esc(ratingDetails(item, t).title)}">${esc(rating)}</td><td class="hc-created" title="${esc(fmtDate(item.createdAt))}">${esc(relDay(item.createdAt))}</td></tr>`;
+    const site = item.meta.site || '—';
+    return `<tr class="h-table-item h-tree-item ${isSelected('item', item.id) ? 'selected' : ''} ${isCut('item', item.id) ? 'cut' : ''}" data-hid="${esc(item.id)}" data-hdrag="item" tabindex="0" draggable="true"><td class="hc-name"><div class="h-cell-name"><span class="h-tree-icon">${ROWICO}</span><b title="${esc(item.name)}">${esc(item.name)}</b>${where ? `<small class="h-where" title="${esc(where)}">${esc(where)}</small>` : ''}<button class="hdots" data-hmenu="${esc(item.id)}" aria-label="${esc(t.open)}">${ICO.dots}</button></div></td><td class="hc-result">${result}</td><td class="hc-judge"><span title="${esc(site)}">${esc(site)}</span></td><td class="hc-rating" title="${esc(ratingDetails(item, t).title)}">${esc(rating)}</td><td class="hc-created" title="${esc(fmtDate(item.createdAt))}">${esc(relDay(item.createdAt))}</td></tr>`;
   }
   function tableFolderRow(group, count, t) {
-    return `<tr class="h-table-folder h-tree-folder ${isSelected('group', group.id) ? 'selected' : ''} ${isCut('group', group.id) ? 'cut' : ''}" data-drop-group="${esc(group.id)}" data-hid="${esc(group.id)}" data-hdrag="group" tabindex="0" draggable="true"><td class="hc-name"><div class="h-cell-name"><span class="h-tree-icon">${ICO.folder}</span><b title="${esc(group.name)}">${esc(group.name)}</b><span class="h-tree-count">${count}</span><button class="hdots" data-gmenu="${esc(group.id)}" aria-label="${esc(t.folderActions)}">${ICO.dots}</button></div></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+    return `<tr class="h-table-folder h-tree-folder ${isSelected('group', group.id) ? 'selected' : ''} ${isCut('group', group.id) ? 'cut' : ''}" data-drop-group="${esc(group.id)}" data-hid="${esc(group.id)}" data-hdrag="group" tabindex="0" draggable="true"><td class="hc-name"><div class="h-cell-name"><span class="h-tree-icon">${ICO.folder}</span><b title="${esc(group.name)}">${esc(group.name)}</b><span class="h-tree-count">${count}</span><button class="hdots" data-gmenu="${esc(group.id)}" aria-label="${esc(t.folderActions)}">${ICO.dots}</button></div></td><td colspan="${TABLE_COLUMNS.length - 1}"></td></tr>`;
   }
   function historyTable(visibleItems) {                              // danh sách phẳng của thư mục hiện tại: nhấp đúp thư mục để đi vào
     const t = T(), query = hs.q.trim().toLowerCase(), currentId = hs.currentGroupId || '';
@@ -318,6 +316,7 @@ window.History = (() => {
     const body = folders + directProblems;
     const folderModifier = /Mac/.test(navigator.userAgent) ? 'Cmd' : 'Ctrl';
     const listMode = C.S.historyLayout === 'list' || C.S.historyLayout === 'tree', table = listMode ? historyTable(items) : '';
+    $('#hfolder-list').classList.toggle('is-table', listMode && !!table);
     const renderedBody = listMode ? table : body;
     $('#hfolder-list').innerHTML = breadcrumbHtml() + (renderedBody ? renderedBody : `<div class="empty" style="padding:36px 10px">${list.length || groups.length ? esc(t.none) : t.emptyHist(`<kbd>${esc(cfg.hotkey || '')}</kbd>`, folderModifier)}</div>`);
     const marquee = $('#hmarquee'); if (marquee) marquee.hidden = true;
@@ -334,7 +333,7 @@ window.History = (() => {
   }
   function closeDrawer() { flush(); cur = null; hs.sel = ''; api.inv('h-active', ''); imageState.fullscreen = false; imageState.drag = null; const d = $('#hdrawer'); if (d) { d.hidden = true; d.innerHTML = ''; } if (active) render(); }
   function drawerHead(i) {
-    const t = T(), e = $('#hdHead'); if (!e) return; const sub = [i.meta.site, i.meta.pid, difficultyName(i.meta.difficulty), ratingDetails(i, t).label, i.day].filter(Boolean).join(' · ');
+    const t = T(), e = $('#hdHead'); if (!e) return; const sub = [i.meta.site, ratingDetails(i, t).label, i.day].filter(Boolean).join(' · ');
     e.innerHTML = `<div class="hd-title"><b>${esc(i.name)}</b><span>${esc(sub)}</span></div><div class="hd-acts"><span class="vts">${TAGS.map(v => { const on = v === 'AC' ? !!i.solved : (i.verdicts || []).includes(v); return `<button class="vt ${v} ${on ? 'on' : ''}" data-hverdict="${v}" title="${VTITLE[v]}" aria-pressed="${on}">${v}</button>`; }).join('')}</span><button class="hb ${i.meta.star ? 'starred' : ''}" data-hact="star" title="${esc(i.meta.star ? t.unstar : t.star)}">${STAR}</button><button class="hb ic" data-hact="rename" title="${esc(t.rename)} (${esc(C.keyLabel('rename'))})" aria-label="${esc(t.rename)}"><svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8.6 2.2l2.2 2.2M1.9 11.1l.6-2.5 6.7-6.7 1.9 1.9-6.7 6.7z"/></svg></button><button class="hb ic" data-hact="reveal" title="${esc(t.reveal)}" aria-label="${esc(t.reveal)}">${ICO.folder}</button><button class="hb" data-hmenu="${esc(i.id)}">${ICO.dots}</button><button class="hb" data-hact="closedr" aria-label="close">${ICO.x}</button></div>`;
   }
   function drawerImg(i) {
@@ -556,6 +555,7 @@ window.History = (() => {
   // ---------- sự kiện
   function onClick(e) {
     const g = s => e.target.closest(s); if (!g('#hview')) return; let x;
+    if ((x = g('[data-hretry]'))) { e.stopPropagation(); x.classList.add('busy'); api.inv('h-estimate', x.dataset.hretry).then(() => load()); return; }
     if ((x = g('[data-hdate]'))) { hs.dateCollapsed[x.dataset.hdate] = !hs.dateCollapsed[x.dataset.hdate]; render(); return; }
     if ((x = g('[data-hlayout]'))) { C.S.historyLayout = x.dataset.hlayout === 'list' ? 'list' : 'cards'; C.persist(); renderBar(); render(); return; }
     if ((x = g('[data-hsort]'))) { const key = x.dataset.hsort; if (!TABLE_COLUMNS.includes(key)) return; hs.sortDir = hs.sortKey === key ? (hs.sortDir === 'asc' ? 'desc' : 'asc') : (key === 'created' || key === 'rating' || key === 'files' ? 'desc' : 'asc'); hs.sortKey = key; return render(); }

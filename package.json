@@ -1,6 +1,6 @@
 {
   "name": "algooly",
- "version": "1.0.0",
+  "version": "1.0.0",
   "description": "Algooly - Thư viện thuật toán cho Competitive Programming",
   "main": "main.js",
   "author": "Nghia Nguyen",
@@ -16,6 +16,7 @@
     "electron@33.4.11": true
   },
   "devDependencies": {
+    "@electron/packager": "^20.3.0",
     "electron": "^45.4.1",
     "electron-builder": "^26.18.0"
   }

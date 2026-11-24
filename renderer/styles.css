@@ -506,3 +506,10 @@ body:not(.has-bg) :is(#titlebar,#side,#list,#detail,#status,#searchbox,#hmain,.h
 /* image panning: grab at every zoom level, grabbing while dragging */
 .hpimg-wrap.panning,.hpimg-wrap.panning .hpimg{cursor:grabbing}
 .hpimg-wrap.panning .hpimg{transition:none}
+
+/* ---------- Layout 2: the table panel stretches to the bottom, so there is no dark gap or extra scroll area under the rows */
+#hfolder-list.is-table{display:flex;flex-direction:column;padding-bottom:0}
+#hfolder-list.is-table>.h-table-wrap{flex:1 0 auto;border-bottom:1px solid var(--line);border-radius:12px}
+
+/* clickable "AI estimate failed / unavailable" chip: click to retry */
+.hs[data-hretry]{cursor:pointer}.hs[data-hretry]:hover{filter:brightness(1.25)}.hs[data-hretry].busy{opacity:.55;pointer-events:none}
